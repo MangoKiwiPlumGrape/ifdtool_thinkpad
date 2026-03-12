@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#define IFDTOOL_VERSION "1.2"
+#define IFDTOOL_VERSION "1.3"
 
 enum ifd_version {
 	IFD_VERSION_1,
@@ -46,19 +46,22 @@ enum ich_chipset {
 
 enum platform {
 	PLATFORM_APL,
-	PLATFORM_CNL,
+	PLATFORM_CNL, /* Cannon Lake (8th/9th gen LP, ME 12): HAP at PCHSTRP28 bit 16 - hardware confirmed */
 	PLATFORM_LBG,
 	PLATFORM_EHL,
 	PLATFORM_GLK,
-	PLATFORM_ICL,
+	PLATFORM_ICL, /* Ice Lake (10th gen LP, ME 13): HAP at PCHSTRP28 bit 16 - by analogy with CML */
 	PLATFORM_CML, /* Comet Lake (10th gen LP, ME 14): HAP at PCHSTRP28 bit 16 - hardware confirmed */
 	PLATFORM_JSL,
 	PLATFORM_SKLKBL,
-	PLATFORM_TGL,
-	PLATFORM_ADL,
+	PLATFORM_TGL, /* Tiger Lake (11th gen, ME 15): HAP at PCHSTRP31 bit 16 - community confirmed */
+	PLATFORM_ADL, /* Alder Lake (12th gen, ME 16): HAP at PCHSTRP31 bit 16 - Intel datasheet confirmed
+		        * Intel 600-series PCH Datasheet Vol1 (Doc 648364): fpsba=0x100,
+		        * PCHSTRP31 at fpsba+0x7C=0x17C. Descriptor byte 0x017E = bit 16 of PCHSTRP31.
+		        * RPL (13th gen, ME 16.1) uses PLATFORM_ADL (-p rpl is an alias). */
 	PLATFORM_IFD2,
 	PLATFORM_DNV,
-	PLATFORM_MTL,
+	PLATFORM_MTL, /* Meteor Lake (14th gen, ME 18): HAP at PCHSTRP31 bit 16 - unconfirmed, ADL lineage */
 	PLATFORM_PTL,
 	PLATFORM_WBG
 };

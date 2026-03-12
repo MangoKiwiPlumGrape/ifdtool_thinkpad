@@ -811,12 +811,24 @@ static void dump_fpsba(const struct fdbar *fdb, const struct fpsba *fpsba)
 		 * HAP (High Assurance Platform) bit location is platform-specific
 		 * for IFD v2 platforms:
 		 *
-		 * CML (Comet Lake, 10th gen LP, ME 14): PCHSTRP28 bit 16
-		 *   Hardware confirmed: X13 Gen1 (ME 14.1.77.2497), fpsba+0x70
-		 * ICL (Ice Lake, 10th gen, ME 13): PCHSTRP28 bit 16
-		 *   Mapped by analogy with CML; same PCH series
-		 * CNL (Cannon Lake, 8th/9th gen LP, ME 12): PCHSTRP28 bit 16
-		 *   Hardware confirmed: X1C Gen6 (ME 12.0.x), fpsba+0x70
+		 * HAP bit location by platform (all use bit 16 of the strap dword):
+		 *
+		 * CNL (Cannon Lake, 8th/9th gen LP, ME 12): PCHSTRP28
+		 *   Hardware confirmed: ThinkPad X1 Carbon Gen6 (ME 12.0.x)
+		 * ICL (Ice Lake, 10th gen LP, ME 13): PCHSTRP28
+		 *   Same PCH series as CML, mapped by analogy.
+		 * CML (Comet Lake, 10th gen LP, ME 14): PCHSTRP28
+		 *   Hardware confirmed: ThinkPad X13 Gen1 (ME 14.1.77.2497)
+		 * TGL (Tiger Lake, 11th gen, ME 15): PCHSTRP31
+		 *   Community confirmed: fpsba+0x7C.
+		 * ADL (Alder Lake, 12th gen, ME 16): PCHSTRP31
+		 *   Datasheet confirmed: Intel 600-series PCH Datasheet Vol1
+		 *   (Doc 648364): fpsba=0x100, PCHSTRP31 at fpsba+0x7C=0x17C.
+		 *   Descriptor byte 0x017E = byte 2 of PCHSTRP31 = bit 16.
+		 * RPL (Raptor Lake, 13th gen, ME 16.1): PCHSTRP31
+		 *   Same PCH series as ADL (-p rpl maps to PLATFORM_ADL).
+		 * MTL (Meteor Lake, 14th gen, ME 18): PCHSTRP31
+		 *   Unconfirmed — consistent with ADL/RPL lineage.
 		 * All other IFD v2 platforms: PCHSTRP0 bit 16 (upstream default)
 		 */
 		int hap_strap, hap_bit;
@@ -828,6 +840,13 @@ static void dump_fpsba(const struct fdbar *fdb, const struct fpsba *fpsba)
 			hap_strap = 28;
 			hap_bit = 16;
 			hap_strap_name = "PCHSTRP28";
+			break;
+		case PLATFORM_TGL:
+		case PLATFORM_ADL:
+		case PLATFORM_MTL:
+			hap_strap = 31;
+			hap_bit = 16;
+			hap_strap_name = "PCHSTRP31";
 			break;
 		default:
 			hap_strap = 0;
@@ -1925,14 +1944,26 @@ static void fpsba_set_altmedisable(struct fpsba *fpsba, struct fmsba *fmsba, boo
 		/*
 		 * HAP bit location is platform-specific for IFD v2:
 		 *
-		 * CML (Comet Lake LP, ME 14): PCHSTRP28 bit 16 - hardware confirmed
+		 * HAP bit location by platform (all use bit 16 of the strap dword):
+		 *
+		 * CNL (Cannon Lake, ME 12 LP): PCHSTRP28 - hardware confirmed
+		 *   Verified on ThinkPad X1 Carbon Gen6 (ME 12.0.x).
+		 * ICL (Ice Lake, ME 13): PCHSTRP28
+		 *   Same PCH series as CML, mapped by analogy.
+		 * CML (Comet Lake LP, ME 14): PCHSTRP28 - hardware confirmed
 		 *   Verified on ThinkPad X13 Gen1 (ME 14.1.77.2497): single byte diff
 		 *   at fpsba+0x70 (PCHSTRP28), bit 16. ifdtool upstream uses pchstrp[0]
 		 *   which silently writes the wrong strap and does nothing.
-		 * ICL (Ice Lake, ME 13): PCHSTRP28 bit 16
-		 *   Same PCH series as CML, mapped by analogy.
-		 * CNL (Cannon Lake, ME 12 LP): PCHSTRP28 bit 16 - hardware confirmed
-		 *   Verified on ThinkPad X1 Carbon Gen6 (ME 12.0.x).
+		 * TGL (Tiger Lake, ME 15): PCHSTRP31
+		 *   Community confirmed: fpsba+0x7C.
+		 * ADL (Alder Lake, ME 16): PCHSTRP31 - datasheet confirmed
+		 *   Intel 600-series PCH Datasheet Vol1 (Doc 648364): fpsba=0x100,
+		 *   PCHSTRP31 at fpsba+0x7C=0x17C, bit 16.
+		 *   Descriptor byte write to 0x017E = bit 16 of PCHSTRP31 (same op).
+		 * RPL (Raptor Lake, ME 16.1): PCHSTRP31
+		 *   Same PCH series as ADL (-p rpl maps to PLATFORM_ADL).
+		 * MTL (Meteor Lake, ME 18): PCHSTRP31
+		 *   Unconfirmed — consistent with ADL/RPL lineage.
 		 * All other IFD v2 platforms: PCHSTRP0 bit 16 (upstream default).
 		 */
 		int hap_strap;
@@ -1943,6 +1974,12 @@ static void fpsba_set_altmedisable(struct fpsba *fpsba, struct fmsba *fmsba, boo
 		case PLATFORM_CNL:
 			hap_strap = 28;
 			hap_strap_name = "PCHSTRP28";
+			break;
+		case PLATFORM_TGL:
+		case PLATFORM_ADL:
+		case PLATFORM_MTL:
+			hap_strap = 31;
+			hap_strap_name = "PCHSTRP31";
 			break;
 		default:
 			hap_strap = 0;
@@ -2295,20 +2332,21 @@ static void print_usage(const char *name)
 	       "   -M | --altmedisable <0|1>             Set the MeDisable and AltMeDisable (or HAP for skylake or newer platform)\n"
 	       "                                         bits to disable ME\n"
 	       "   -p | --platform                       Add platform-specific quirks\n"
-	       "                                         adl    - Alder Lake\n"
+	       "                                         adl    - Alder Lake (12th gen, HAP@PCHSTRP31 - datasheet confirmed)\n"
 	       "                                         aplk   - Apollo Lake\n"
-	       "                                         cnl    - Cannon Lake\n"
+	       "                                         cnl    - Cannon Lake (8th/9th gen LP, HAP@PCHSTRP28 - hw confirmed)\n"
 	       "                                         cml    - Comet Lake (10th gen LP, HAP@PCHSTRP28 - hw confirmed)\n"
 	       "                                         lbg    - Lewisburg PCH\n"
 	       "                                         dnv    - Denverton\n"
 	       "                                         ehl    - Elkhart Lake\n"
 	       "                                         glk    - Gemini Lake\n"
-	       "                                         icl    - Ice Lake\n"
+	       "                                         icl    - Ice Lake (10th gen LP, HAP@PCHSTRP28)\n"
 	       "                                         ifd2   - IFDv2 Platform\n"
 	       "                                         jsl    - Jasper Lake\n"
-	       "                                         mtl    - Meteor Lake\n"
+	       "                                         mtl    - Meteor Lake (14th gen, HAP@PCHSTRP31 - unconfirmed)\n"
+	       "                                         rpl    - Raptor Lake (13th gen, HAP@PCHSTRP31 - alias for adl)\n"
 	       "                                         sklkbl - Sky Lake/Kaby Lake\n"
-	       "                                         tgl    - Tiger Lake\n"
+	       "                                         tgl    - Tiger Lake (11th gen, HAP@PCHSTRP31 - community confirmed)\n"
 	       "                                         wbg    - Wellsburg\n"
 	       "   -S | --setpchstrap                    Write a PCH strap\n"
 	       "   -V | --newvalue                       The new value to write into PCH strap specified by -S\n"
@@ -2604,6 +2642,9 @@ int main(int argc, char *argv[])
 			} else if (!strcmp(optarg, "tgl")) {
 				platform = PLATFORM_TGL;
 			} else if (!strcmp(optarg, "adl")) {
+				platform = PLATFORM_ADL;
+			} else if (!strcmp(optarg, "rpl")) {
+				/* Raptor Lake shares ADL PCH descriptor layout */
 				platform = PLATFORM_ADL;
 			} else if (!strcmp(optarg, "ifd2")) {
 				platform = PLATFORM_IFD2;

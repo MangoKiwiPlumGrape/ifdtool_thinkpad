@@ -50,8 +50,11 @@ enum platform {
 	PLATFORM_LBG,
 	PLATFORM_EHL,
 	PLATFORM_GLK,
-	PLATFORM_ICL, /* Ice Lake (10th gen LP, ME 13): HAP at PCHSTRP28 bit 16 - by analogy with CML */
-	PLATFORM_CML, /* Comet Lake (10th gen LP, ME 14): HAP at PCHSTRP28 bit 16 - hardware confirmed */
+	PLATFORM_ICL, /* Ice Lake (10th gen LP, ME 13): HAP at PCHSTRP28 bit 16 - datasheet confirmed
+		        * Intel 400-series On-Package PCH Datasheet (Doc 615170): FPSBA=0x100,
+		        * same descriptor layout as CML. Upgrades previous 'by analogy' status. */
+	PLATFORM_CML, /* Comet Lake (10th gen LP, ME 14): HAP at PCHSTRP28 bit 16 - hardware confirmed
+		        * Intel 400-series PCH Datasheet (Doc 620854): FPSBA=0x100 confirmed. */
 	PLATFORM_JSL,
 	PLATFORM_SKLKBL,
 	PLATFORM_TGL, /* Tiger Lake (11th gen, ME 15): HAP at PCHSTRP31 bit 16 - community confirmed */
@@ -61,7 +64,11 @@ enum platform {
 		        * RPL (13th gen, ME 16.1) uses PLATFORM_ADL (-p rpl is an alias). */
 	PLATFORM_IFD2,
 	PLATFORM_DNV,
-	PLATFORM_MTL, /* Meteor Lake (14th gen, ME 18): HAP at PCHSTRP31 bit 16 - unconfirmed, ADL lineage */
+	PLATFORM_MTL, /* Meteor Lake (14th gen, ME 18): HAP location UNCONFIRMED.
+		        * WARNING: MTL dropped discrete PCH — tile architecture. Flash descriptor
+		        * layout completely changed: no PCH Straps at 0x100. HAP likely in
+		        * IOE Soft Straps at 0xCAC (empirical confirmation needed).
+		        * Current PCHSTRP31 path is a placeholder — do not rely on for MTL. */
 	PLATFORM_PTL,
 	PLATFORM_WBG
 };

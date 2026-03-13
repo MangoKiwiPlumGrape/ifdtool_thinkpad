@@ -816,7 +816,8 @@ static void dump_fpsba(const struct fdbar *fdb, const struct fpsba *fpsba)
 		 * CNL (Cannon Lake, 8th/9th gen LP, ME 12): PCHSTRP28
 		 *   Hardware confirmed: ThinkPad X1 Carbon Gen6 (ME 12.0.x)
 		 * ICL (Ice Lake, 10th gen LP, ME 13): PCHSTRP28
-		 *   Same PCH series as CML, mapped by analogy.
+		 *   Datasheet confirmed: Intel 400-series On-Package PCH Datasheet
+		 *   (Doc 615170): FPSBA=0x100, same layout as CML. Upgrades 'by analogy'.
 		 * CML (Comet Lake, 10th gen LP, ME 14): PCHSTRP28
 		 *   Hardware confirmed: ThinkPad X13 Gen1 (ME 14.1.77.2497)
 		 * TGL (Tiger Lake, 11th gen, ME 15): PCHSTRP31
@@ -828,7 +829,9 @@ static void dump_fpsba(const struct fdbar *fdb, const struct fpsba *fpsba)
 		 * RPL (Raptor Lake, 13th gen, ME 16.1): PCHSTRP31
 		 *   Same PCH series as ADL (-p rpl maps to PLATFORM_ADL).
 		 * MTL (Meteor Lake, 14th gen, ME 18): PCHSTRP31
-		 *   Unconfirmed — consistent with ADL/RPL lineage.
+		 *   WARNING: MTL has no discrete PCH — tile architecture. Flash descriptor
+		 *   layout changed: no PCH Straps at 0x100. IOE Soft Straps at 0xCAC.
+		 *   HAP location empirically unconfirmed. Current path is a placeholder.
 		 * All other IFD v2 platforms: PCHSTRP0 bit 16 (upstream default)
 		 */
 		int hap_strap, hap_bit;
@@ -1949,7 +1952,8 @@ static void fpsba_set_altmedisable(struct fpsba *fpsba, struct fmsba *fmsba, boo
 		 * CNL (Cannon Lake, ME 12 LP): PCHSTRP28 - hardware confirmed
 		 *   Verified on ThinkPad X1 Carbon Gen6 (ME 12.0.x).
 		 * ICL (Ice Lake, ME 13): PCHSTRP28
-		 *   Same PCH series as CML, mapped by analogy.
+		 *   Datasheet confirmed: Intel 400-series On-Package PCH Datasheet
+		 *   (Doc 615170): FPSBA=0x100, same layout as CML. Upgrades 'by analogy'.
 		 * CML (Comet Lake LP, ME 14): PCHSTRP28 - hardware confirmed
 		 *   Verified on ThinkPad X13 Gen1 (ME 14.1.77.2497): single byte diff
 		 *   at fpsba+0x70 (PCHSTRP28), bit 16. ifdtool upstream uses pchstrp[0]
@@ -1963,7 +1967,9 @@ static void fpsba_set_altmedisable(struct fpsba *fpsba, struct fmsba *fmsba, boo
 		 * RPL (Raptor Lake, ME 16.1): PCHSTRP31
 		 *   Same PCH series as ADL (-p rpl maps to PLATFORM_ADL).
 		 * MTL (Meteor Lake, ME 18): PCHSTRP31
-		 *   Unconfirmed — consistent with ADL/RPL lineage.
+		 *   WARNING: MTL has no discrete PCH — tile architecture. Descriptor
+		 *   layout changed: no PCH Straps at 0x100. IOE Soft Straps at 0xCAC.
+		 *   HAP location empirically unconfirmed. Current path is a placeholder.
 		 * All other IFD v2 platforms: PCHSTRP0 bit 16 (upstream default).
 		 */
 		int hap_strap;

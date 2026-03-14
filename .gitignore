@@ -1,0 +1,5 @@
+*.o
+ifdtool
+.dependencies
+Makefile.orig
+Makefile.mk.orig

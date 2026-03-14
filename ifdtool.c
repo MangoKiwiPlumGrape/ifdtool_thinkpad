@@ -847,6 +847,11 @@ static void dump_fpsba(const struct fdbar *fdb, const struct fpsba *fpsba)
 		case PLATFORM_TGL:
 		case PLATFORM_ADL:
 		case PLATFORM_MTL:
+		case PLATFORM_PTL: /* WARNING: PTL HAP strap location unconfirmed.
+				    * No PTL Vol2 or register map analysed yet.
+				    * Using PCHSTRP31 as placeholder — same as MTL.
+				    * Do not rely on this for PTL until confirmed
+				    * from a real PTL firmware dump. */
 			hap_strap = 31;
 			hap_bit = 16;
 			hap_strap_name = "PCHSTRP31";
@@ -1984,6 +1989,10 @@ static void fpsba_set_altmedisable(struct fpsba *fpsba, struct fmsba *fmsba, boo
 		case PLATFORM_TGL:
 		case PLATFORM_ADL:
 		case PLATFORM_MTL:
+		case PLATFORM_PTL: /* WARNING: PTL HAP strap location unconfirmed.
+				    * Using PCHSTRP31 as placeholder — same as MTL.
+				    * Do not rely on this for PTL until confirmed
+				    * from a real PTL firmware dump. */
 			hap_strap = 31;
 			hap_strap_name = "PCHSTRP31";
 			break;
@@ -2350,6 +2359,7 @@ static void print_usage(const char *name)
 	       "                                         ifd2   - IFDv2 Platform\n"
 	       "                                         jsl    - Jasper Lake\n"
 	       "                                         mtl    - Meteor Lake (14th gen, HAP@PCHSTRP31 - unconfirmed)\n"
+	       "                                         ptl    - Panther Lake (Series 3, HAP@PCHSTRP31 - unconfirmed)\n"
 	       "                                         rpl    - Raptor Lake (13th gen, HAP@PCHSTRP31 - alias for adl)\n"
 	       "                                         sklkbl - Sky Lake/Kaby Lake\n"
 	       "                                         tgl    - Tiger Lake (11th gen, HAP@PCHSTRP31 - community confirmed)\n"

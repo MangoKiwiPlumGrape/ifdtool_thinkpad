@@ -12,6 +12,7 @@
 #define _COMMONLIB_HELPERS_H_
 
 #include <stddef.h>
+#include <commonlib/bsd/compiler.h>
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))

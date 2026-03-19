@@ -17,12 +17,16 @@ INSTALL ?= /usr/bin/env install
 PREFIX  ?= /usr/local
 
 # Use vendored commonlib headers from within this repo
-COMMONLIB_INC := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))commonlib/include
+COMMONLIB_INC     := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))commonlib/include
+COMMONLIB_BSD_INC := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))commonlib/bsd/include
+REPOROOT          := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
 CFLAGS  ?= -O2 -Wall -Wextra \
            -Wno-unused-parameter \
            -Wno-sign-compare \
-           -I $(COMMONLIB_INC)
+           -I $(COMMONLIB_INC) \
+           -I $(COMMONLIB_BSD_INC) \
+           -I $(REPOROOT)
 
 OBJS = ifdtool.o
 
@@ -40,7 +44,7 @@ $(PROGRAM): $(OBJS)
 	$(CC) $(CFLAGS) -o $(PROGRAM) $(OBJS)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
 	rm -f $(PROGRAM) *.o *~ .dependencies

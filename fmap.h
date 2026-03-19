@@ -24,4 +24,19 @@ struct fmap {
 	uint16_t nareas;
 	struct fmap_area areas[];
 } __attribute__((packed));
+/* Stub implementations — disables --validate and --fmap-layout only.
+ * All HAP bit operations (-d, -p, --altmedisable, -x, -i) work normally. */
+static inline long fmap_find(const uint8_t *image, unsigned int len)
+{
+	(void)image; (void)len;
+	return -1; /* not found — --validate disabled in standalone build */
+}
+
+static inline struct fmap_area *fmap_find_area(struct fmap *fmap,
+					       const char *name)
+{
+	(void)fmap; (void)name;
+	return NULL;
+}
+
 #endif /* _FMAP_H_ */

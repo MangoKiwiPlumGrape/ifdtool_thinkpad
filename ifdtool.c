@@ -265,6 +265,7 @@ static enum ich_chipset ifd2_platform_to_chipset(const int pindex)
 	case PLATFORM_CNL:
 		return CHIPSET_300_SERIES_CANNON_POINT;
 	case PLATFORM_TGL:
+	case PLATFORM_RKL: /* Tiger Point PCH-H — same chipset series as TGL */
 	case PLATFORM_ADL:
 	case PLATFORM_IFD2:
 		return CHIPSET_500_600_SERIES_TIGER_ALDER_POINT;
@@ -303,6 +304,7 @@ static int is_platform_ifd_2(void)
 		PLATFORM_ICL,
 		PLATFORM_CML,
 		PLATFORM_TGL,
+		PLATFORM_RKL,
 		PLATFORM_JSL,
 		PLATFORM_EHL,
 		PLATFORM_ADL,
@@ -820,8 +822,13 @@ static void dump_fpsba(const struct fdbar *fdb, const struct fpsba *fpsba)
 		 *   (Doc 615170): FPSBA=0x100, same layout as CML. Upgrades 'by analogy'.
 		 * CML (Comet Lake, 10th gen LP, ME 14): PCHSTRP28
 		 *   Hardware confirmed: ThinkPad X13 Gen1 (ME 14.1.77.2497)
-		 * TGL (Tiger Lake, 11th gen, ME 15): PCHSTRP31
-		 *   Community confirmed: fpsba+0x7C.
+		 * TGL-LP (Tiger Lake LP, 11th gen LP, ME 15): PCHSTRP31
+		 *   Datasheet confirmed: TGL-LP SPI Programming Guide (archive.org)
+		 *   FPSBA+0x7C = PCHSTRP31 bit 16, Default Flash Address 0x17C.
+		 * RKL (Rocket Lake H + Tiger Lake H, Tiger Point PCH-H, ME 15): PCHSTRP37
+		 *   Datasheet confirmed: Rocketlake-H SPI Programming Guide (archive.org)
+		 *   FPSBA+0x94 = PCHSTRP37 bit 16, Default Flash Address 0x194.
+		 *   Tiger Point PCH-H is shared between RKL-H and TGL-H platforms.
 		 * ADL (Alder Lake, 12th gen, ME 16): PCHSTRP31
 		 *   Datasheet confirmed: Intel 600-series PCH Datasheet Vol1
 		 *   (Doc 648364): fpsba=0x100, PCHSTRP31 at fpsba+0x7C=0x17C.
@@ -843,6 +850,11 @@ static void dump_fpsba(const struct fdbar *fdb, const struct fpsba *fpsba)
 			hap_strap = 28;
 			hap_bit = 16;
 			hap_strap_name = "PCHSTRP28";
+			break;
+		case PLATFORM_RKL:
+			hap_strap = 37;
+			hap_bit = 16;
+			hap_strap_name = "PCHSTRP37";
 			break;
 		case PLATFORM_TGL:
 		case PLATFORM_ADL:
@@ -1468,6 +1480,7 @@ static bool platform_has_extended_regions(void)
 	case PLATFORM_CNL:
 	case PLATFORM_JSL:
 	case PLATFORM_TGL:
+	case PLATFORM_RKL: /* Tiger Point PCH-H — same chipset series as TGL */
 	case PLATFORM_ADL:
 	case PLATFORM_MTL:
 	case PLATFORM_PTL:
@@ -1530,6 +1543,7 @@ static void lock_descriptor(const char *filename, char *image, int size)
 	case PLATFORM_ICL:
 	case PLATFORM_SKLKBL:
 	case PLATFORM_TGL:
+	case PLATFORM_RKL:
 	case PLATFORM_JSL:
 	case PLATFORM_EHL:
 	case PLATFORM_ADL:
@@ -1687,6 +1701,7 @@ static uint8_t get_cse_data_partition_offset(void)
 		data_offset = 0x10;
 		break;
 	case PLATFORM_TGL:
+	case PLATFORM_RKL: /* Tiger Point PCH-H — same chipset series as TGL */
 	case PLATFORM_ADL:
 	case PLATFORM_MTL:
 	case PLATFORM_PTL:
@@ -1712,6 +1727,7 @@ static uint32_t get_gpr0_offset(void)
 		gpr0_offset = 0x12;
 		break;
 	case PLATFORM_TGL:
+	case PLATFORM_RKL: /* Tiger Point PCH-H — same chipset series as TGL */
 	case PLATFORM_ADL:
 		gpr0_offset = 0x15;
 		break;
@@ -1963,8 +1979,12 @@ static void fpsba_set_altmedisable(struct fpsba *fpsba, struct fmsba *fmsba, boo
 		 *   Verified on ThinkPad X13 Gen1 (ME 14.1.77.2497): single byte diff
 		 *   at fpsba+0x70 (PCHSTRP28), bit 16. ifdtool upstream uses pchstrp[0]
 		 *   which silently writes the wrong strap and does nothing.
-		 * TGL (Tiger Lake, ME 15): PCHSTRP31
-		 *   Community confirmed: fpsba+0x7C.
+		 * TGL-LP (Tiger Lake LP, ME 15): PCHSTRP31
+		 *   Datasheet confirmed: TGL-LP SPI Programming Guide (archive.org)
+		 *   FPSBA+0x7C = PCHSTRP31 bit 16, Default Flash Address 0x17C.
+		 * RKL (Rocket Lake H + Tiger Lake H, Tiger Point PCH-H, ME 15): PCHSTRP37
+		 *   Datasheet confirmed: Rocketlake-H SPI Programming Guide (archive.org)
+		 *   FPSBA+0x94 = PCHSTRP37 bit 16, Default Flash Address 0x194.
 		 * ADL (Alder Lake, ME 16): PCHSTRP31 - datasheet confirmed
 		 *   Intel 600-series PCH Datasheet Vol1 (Doc 648364): fpsba=0x100,
 		 *   PCHSTRP31 at fpsba+0x7C=0x17C, bit 16.
@@ -1985,6 +2005,10 @@ static void fpsba_set_altmedisable(struct fpsba *fpsba, struct fmsba *fmsba, boo
 		case PLATFORM_CNL:
 			hap_strap = 28;
 			hap_strap_name = "PCHSTRP28";
+			break;
+		case PLATFORM_RKL:
+			hap_strap = 37;
+			hap_strap_name = "PCHSTRP37";
 			break;
 		case PLATFORM_TGL:
 		case PLATFORM_ADL:
@@ -2360,9 +2384,10 @@ static void print_usage(const char *name)
 	       "                                         jsl    - Jasper Lake\n"
 	       "                                         mtl    - Meteor Lake (14th gen, HAP@PCHSTRP31 - unconfirmed)\n"
 	       "                                         ptl    - Panther Lake (Series 3, HAP@PCHSTRP31 - unconfirmed)\n"
+	       "                                         rkl    - Rocket Lake H / Tiger Lake H (Tiger Point PCH-H, HAP@PCHSTRP37 - datasheet confirmed)\n"
 	       "                                         rpl    - Raptor Lake (13th gen, HAP@PCHSTRP31 - alias for adl)\n"
 	       "                                         sklkbl - Sky Lake/Kaby Lake\n"
-	       "                                         tgl    - Tiger Lake (11th gen, HAP@PCHSTRP31 - community confirmed)\n"
+	       "                                         tgl    - Tiger Lake LP (11th gen LP, HAP@PCHSTRP31 - datasheet confirmed)\n"
 	       "                                         wbg    - Wellsburg\n"
 	       "   -S | --setpchstrap                    Write a PCH strap\n"
 	       "   -V | --newvalue                       The new value to write into PCH strap specified by -S\n"
@@ -2657,6 +2682,8 @@ int main(int argc, char *argv[])
 				platform = PLATFORM_SKLKBL;
 			} else if (!strcmp(optarg, "tgl")) {
 				platform = PLATFORM_TGL;
+			} else if (!strcmp(optarg, "rkl")) {
+				platform = PLATFORM_RKL;
 			} else if (!strcmp(optarg, "adl")) {
 				platform = PLATFORM_ADL;
 			} else if (!strcmp(optarg, "rpl")) {

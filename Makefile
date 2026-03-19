@@ -1,20 +1,59 @@
 # SPDX-License-Identifier: GPL-2.0-only
-# ifdtool-thinkpad — standalone Makefile (patched by fix_build.sh)
+#
+# ifdtool-thinkpad — standalone Makefile
+#
+# No coreboot tree required. Vendored commonlib headers are included
+# in the commonlib/ subdirectory of this repo.
+#
+# Usage:
+#   make          — build ifdtool
+#   make install  — install to /usr/local/bin
+#   make clean    — remove build artifacts
+
 PROGRAM = ifdtool
+
 CC      ?= gcc
 INSTALL ?= /usr/bin/env install
 PREFIX  ?= /usr/local
-CFLAGS  ?= -O2 -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare \
-           -I /home/util/Documents/ifdtool_thinkpad-main/commonlib/include -I /home/util/Documents/ifdtool_thinkpad-main
+
+# Use vendored commonlib headers from within this repo
+COMMONLIB_INC := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))commonlib/include
+
+CFLAGS  ?= -O2 -Wall -Wextra \
+           -Wno-unused-parameter \
+           -Wno-sign-compare \
+           -I $(COMMONLIB_INC)
+
 OBJS = ifdtool.o
+
+OS_ARCH = $(shell uname)
+ifeq ($(OS_ARCH), Darwin)
+# no extra flags needed
+endif
+ifeq ($(OS_ARCH), FreeBSD)
+CFLAGS += -I/usr/local/include
+endif
+
 all: $(PROGRAM)
+
 $(PROGRAM): $(OBJS)
 	$(CC) $(CFLAGS) -o $(PROGRAM) $(OBJS)
+
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) -c -o $@ $
+
 clean:
 	rm -f $(PROGRAM) *.o *~ .dependencies
+
+distclean: clean
+
+dep:
+	@$(CC) $(CFLAGS) -MM *.c > .dependencies 2>/dev/null || true
+
 install: $(PROGRAM)
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
 	$(INSTALL) $(PROGRAM) $(DESTDIR)$(PREFIX)/bin
-.PHONY: all clean install
+
+.PHONY: all clean distclean dep install
+
+-include .dependencies

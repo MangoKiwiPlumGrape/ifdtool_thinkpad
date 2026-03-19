@@ -57,7 +57,17 @@ enum platform {
 		        * Intel 400-series PCH Datasheet (Doc 620854): FPSBA=0x100 confirmed. */
 	PLATFORM_JSL,
 	PLATFORM_SKLKBL,
-	PLATFORM_TGL, /* Tiger Lake (11th gen, ME 15): HAP at PCHSTRP31 bit 16 - community confirmed */
+	PLATFORM_TGL, /* Tiger Lake LP (11th gen LP, ME 15): HAP at PCHSTRP31 bit 16
+		        * Datasheet confirmed: TGL-LP SPI Programming Guide (archive.org):
+		        * FPSBA+0x7C = PCHSTRP31 bit 16, Default Flash Address 0x17C.
+		        * NOTE: TGL-LP only. TGL-H and RKL-H use Tiger Point PCH-H
+		        * which has HAP at PCHSTRP37 — use -p rkl for those platforms. */
+	PLATFORM_RKL, /* Rocket Lake H + Tiger Lake H (Tiger Point PCH-H, ME 15):
+		        * HAP at PCHSTRP37 bit 16 - datasheet confirmed
+		        * Rocketlake-H SPI Programming Guide (archive.org):
+		        * FPSBA+0x94 = PCHSTRP37 bit 16, Default Flash Address 0x194.
+		        * Tiger Point PCH-H is shared between RKL-H and TGL-H platforms.
+		        * Use -p rkl for TGL-H (Z590/H570/B560) and RKL-H boards. */
 	PLATFORM_ADL, /* Alder Lake (12th gen, ME 16): HAP at PCHSTRP31 bit 16 - Intel datasheet confirmed
 		        * Intel 600-series PCH Datasheet Vol1 (Doc 648364): fpsba=0x100,
 		        * PCHSTRP31 at fpsba+0x7C=0x17C. Descriptor byte 0x017E = bit 16 of PCHSTRP31.

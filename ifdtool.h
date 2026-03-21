@@ -68,17 +68,29 @@ enum platform {
 		        * FPSBA+0x94 = PCHSTRP37 bit 16, Default Flash Address 0x194.
 		        * Tiger Point PCH-H is shared between RKL-H and TGL-H platforms.
 		        * Use -p rkl for TGL-H (Z590/H570/B560) and RKL-H boards. */
-	PLATFORM_ADL, /* Alder Lake (12th gen, ME 16): HAP at PCHSTRP31 bit 16 - Intel datasheet confirmed
-		        * Intel 600-series PCH Datasheet Vol1 (Doc 648364): fpsba=0x100,
-		        * PCHSTRP31 at fpsba+0x7C=0x17C. Descriptor byte 0x017E = bit 16 of PCHSTRP31.
+	PLATFORM_ADL, /* Alder Lake (12th gen, ME 16) / Raptor Lake (13th gen, ME 16.1):
+		        * Two PCH variants with different HAP locations:
+		        *   PCH-P/N mobile (ThinkPads, laptops): HAP at PCHSTRP31 bit 16
+		        *     Intel 600-series PCH Datasheet Vol1 (Doc 648364): fpsba=0x100,
+		        *     PCHSTRP31 at fpsba+0x7C=0x17C. Descriptor byte 0x017E = bit 16.
+		        *     Dasharo me_spec_16.h: HAP_OFFSET=0x17E (SOC_INTEL_ALDERLAKE_PCH_P/N)
+		        *   PCH-S desktop (Z690/H670/B660): HAP at PCHSTRP55 bit 16
+		        *     fpsba+0xDC = PCHSTRP55. Descriptor byte 0x01DE = bit 16.
+		        *     Dasharo me_spec_16.h: HAP_OFFSET=0x1DE (SOC_INTEL_ALDERLAKE_PCH_S)
+		        * Discriminator: fpsba->pchstrp[0xd0/4] == 0x10081008 → PCH-S desktop
+		        *                fpsba->pchstrp[0xd0/4] == 0x00000300 → PCH-P/N mobile
+		        * Source: coreboot gerrit 88310 ifd2_platform_get_hap_location()
+		        * Verified: T14 Gen3 ADL-P dump fpsba+0xD0=0x300 → 0x17E correct.
 		        * RPL (13th gen, ME 16.1) uses PLATFORM_ADL (-p rpl is an alias). */
 	PLATFORM_IFD2,
 	PLATFORM_DNV,
-	PLATFORM_MTL, /* Meteor Lake (14th gen, ME 18): HAP location UNCONFIRMED.
-		        * WARNING: MTL dropped discrete PCH — tile architecture. Flash descriptor
-		        * layout completely changed: no PCH Straps at 0x100. HAP likely in
-		        * IOE Soft Straps at 0xCAC (empirical confirmation needed).
-		        * Current PCHSTRP31 path is a placeholder — do not rely on for MTL. */
+	PLATFORM_MTL, /* Meteor Lake (14th gen, ME 18): HAP at strap 71 (fpsba+0x11C) bit 16
+		        * Source: coreboot gerrit 88310 ifd2_platform_get_hap_location()
+		        *   PLATFORM_MTL returns 0x11c/4 = strap 71
+		        *   fpsba(0x100) + 0x11C = 0x21C dword, byte +2 = 0x21E = bit 16
+		        *   Consistent with Dasharo me_spec_18.h HAP_OFFSET=0x21E (MTL U/H)
+		        * MTL dropped discrete PCH — tile architecture. No PCH Straps at 0x100.
+		        * fpsba still resolves to 0x100 per gerrit; strap 71 at fpsba+0x11C. */
 	PLATFORM_PTL,
 	PLATFORM_WBG
 };

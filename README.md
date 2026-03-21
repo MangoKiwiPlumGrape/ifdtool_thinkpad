@@ -1,5 +1,7 @@
 # ifdtool-thinkpad — HAP Bit Fork for 8th–14th Gen Intel Platforms
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/MangoKiwiPlumGrape/ifdtool_thinkpad)
+
 Fork of [coreboot's ifdtool](https://github.com/coreboot/coreboot/tree/main/util/ifdtool) with hardware- and datasheet-confirmed fixes for reading and setting the Intel ME HAP (High Assurance Platform) disable bit across Cannon Lake through Meteor Lake platforms.
 
 ---

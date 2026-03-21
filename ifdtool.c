@@ -829,16 +829,18 @@ static void dump_fpsba(const struct fdbar *fdb, const struct fpsba *fpsba)
 		 *   Datasheet confirmed: Rocketlake-H SPI Programming Guide (archive.org)
 		 *   FPSBA+0x94 = PCHSTRP37 bit 16, Default Flash Address 0x194.
 		 *   Tiger Point PCH-H is shared between RKL-H and TGL-H platforms.
-		 * ADL (Alder Lake, 12th gen, ME 16): PCHSTRP31
-		 *   Datasheet confirmed: Intel 600-series PCH Datasheet Vol1
-		 *   (Doc 648364): fpsba=0x100, PCHSTRP31 at fpsba+0x7C=0x17C.
-		 *   Descriptor byte 0x017E = byte 2 of PCHSTRP31 = bit 16.
-		 * RPL (Raptor Lake, 13th gen, ME 16.1): PCHSTRP31
-		 *   Same PCH series as ADL (-p rpl maps to PLATFORM_ADL).
-		 * MTL (Meteor Lake, 14th gen, ME 18): PCHSTRP31
-		 *   WARNING: MTL has no discrete PCH — tile architecture. Flash descriptor
-		 *   layout changed: no PCH Straps at 0x100. IOE Soft Straps at 0xCAC.
-		 *   HAP location empirically unconfirmed. Current path is a placeholder.
+		 * ADL (Alder Lake, 12th gen, ME 16) / RPL (Raptor Lake, 13th gen, ME 16.1):
+		 *   PCH-P/N mobile: PCHSTRP31 bit 16 — fpsba+0x7C, byte 0x017E
+		 *     Doc 648364, Dasharo me_spec_16.h HAP_OFFSET=0x17E (PCH_P/N)
+		 *   PCH-S desktop (Z690/H670/B660): PCHSTRP55 bit 16 — fpsba+0xDC, byte 0x01DE
+		 *     Dasharo me_spec_16.h HAP_OFFSET=0x1DE (SOC_INTEL_ALDERLAKE_PCH_S)
+		 *   Discriminator: fpsba->pchstrp[0xd0/4] == 0x10081008 → PCH-S desktop
+		 *                  fpsba->pchstrp[0xd0/4] == 0x00000300 → PCH-P/N mobile
+		 *   Source: coreboot gerrit 88310 ifd2_platform_get_hap_location()
+		 * MTL (Meteor Lake, 14th gen, ME 18): strap 71 (fpsba+0x11C) bit 16
+		 *   Source: coreboot gerrit 88310: PLATFORM_MTL returns 0x11c/4 = strap 71
+		 *   fpsba(0x100)+0x11C = 0x21C dword, byte+2 = 0x21E. Consistent with
+		 *   Dasharo me_spec_18.h HAP_OFFSET=0x21E (SOC_INTEL_METEORLAKE_U_H).
 		 * All other IFD v2 platforms: PCHSTRP0 bit 16 (upstream default)
 		 */
 		int hap_strap, hap_bit;
@@ -857,16 +859,40 @@ static void dump_fpsba(const struct fdbar *fdb, const struct fpsba *fpsba)
 			hap_strap_name = "PCHSTRP37";
 			break;
 		case PLATFORM_TGL:
+			hap_strap = 31;
+			hap_bit = 16;
+			hap_strap_name = "PCHSTRP31";
+			break;
 		case PLATFORM_ADL:
+			/* ADL/RPL PCH-S desktop vs PCH-P/N mobile discrimination.
+			 * Source: coreboot gerrit 88310 ifd2_platform_get_hap_location() */
+			if (fpsba->pchstrp[0xd0 / 4] == 0x10081008) {
+				/* ADL-S B0 step / RPL-S desktop (Z690/H670/B660) */
+				hap_strap = 55; /* PCHSTRP55 = fpsba+0xDC */
+				hap_bit = 16;
+				hap_strap_name = "PCHSTRP55 (ADL-S/RPL-S desktop)";
+			} else {
+				/* ADL-P/N mobile / RPL-P (ThinkPads, laptops) */
+				hap_strap = 31; /* PCHSTRP31 = fpsba+0x7C */
+				hap_bit = 16;
+				hap_strap_name = "PCHSTRP31 (ADL-P/N/RPL-P mobile)";
+			}
+			break;
 		case PLATFORM_MTL:
+			/* Strap 71 = fpsba+0x11C bit 16.
+			 * Source: coreboot gerrit 88310. Consistent with
+			 * Dasharo me_spec_18.h HAP_OFFSET=0x21E (byte 2 of strap 71). */
+			hap_strap = 71;
+			hap_bit = 16;
+			hap_strap_name = "PCHSTRP71 (MTL — gerrit 88310 confirmed)";
+			break;
 		case PLATFORM_PTL: /* WARNING: PTL HAP strap location unconfirmed.
-				    * No PTL Vol2 or register map analysed yet.
-				    * Using PCHSTRP31 as placeholder — same as MTL.
+				    * Using PCHSTRP31 as placeholder — same as ADL-P/N.
 				    * Do not rely on this for PTL until confirmed
 				    * from a real PTL firmware dump. */
 			hap_strap = 31;
 			hap_bit = 16;
-			hap_strap_name = "PCHSTRP31";
+			hap_strap_name = "PCHSTRP31 (PTL — UNCONFIRMED placeholder)";
 			break;
 		default:
 			hap_strap = 0;
@@ -1985,16 +2011,14 @@ static void fpsba_set_altmedisable(struct fpsba *fpsba, struct fmsba *fmsba, boo
 		 * RKL (Rocket Lake H + Tiger Lake H, Tiger Point PCH-H, ME 15): PCHSTRP37
 		 *   Datasheet confirmed: Rocketlake-H SPI Programming Guide (archive.org)
 		 *   FPSBA+0x94 = PCHSTRP37 bit 16, Default Flash Address 0x194.
-		 * ADL (Alder Lake, ME 16): PCHSTRP31 - datasheet confirmed
-		 *   Intel 600-series PCH Datasheet Vol1 (Doc 648364): fpsba=0x100,
-		 *   PCHSTRP31 at fpsba+0x7C=0x17C, bit 16.
-		 *   Descriptor byte write to 0x017E = bit 16 of PCHSTRP31 (same op).
-		 * RPL (Raptor Lake, ME 16.1): PCHSTRP31
-		 *   Same PCH series as ADL (-p rpl maps to PLATFORM_ADL).
-		 * MTL (Meteor Lake, ME 18): PCHSTRP31
-		 *   WARNING: MTL has no discrete PCH — tile architecture. Descriptor
-		 *   layout changed: no PCH Straps at 0x100. IOE Soft Straps at 0xCAC.
-		 *   HAP location empirically unconfirmed. Current path is a placeholder.
+		 * ADL (Alder Lake, ME 16) / RPL (Raptor Lake, ME 16.1):
+		 *   PCH-P/N mobile: PCHSTRP31 — Doc 648364, Dasharo me_spec_16.h 0x17E
+		 *   PCH-S desktop:  PCHSTRP55 — Dasharo me_spec_16.h 0x1DE
+		 *   Discriminator: fpsba->pchstrp[0xd0/4] == 0x10081008 → PCH-S desktop
+		 *   Source: coreboot gerrit 88310 ifd2_platform_get_hap_location()
+		 * MTL (Meteor Lake, ME 18): strap 71 (fpsba+0x11C) bit 16
+		 *   Source: coreboot gerrit 88310. Consistent with Dasharo me_spec_18.h
+		 *   HAP_OFFSET=0x21E (byte 2 of PCHSTRP71 dword at fpsba+0x11C).
 		 * All other IFD v2 platforms: PCHSTRP0 bit 16 (upstream default).
 		 */
 		int hap_strap;
@@ -2011,14 +2035,31 @@ static void fpsba_set_altmedisable(struct fpsba *fpsba, struct fmsba *fmsba, boo
 			hap_strap_name = "PCHSTRP37";
 			break;
 		case PLATFORM_TGL:
-		case PLATFORM_ADL:
-		case PLATFORM_MTL:
-		case PLATFORM_PTL: /* WARNING: PTL HAP strap location unconfirmed.
-				    * Using PCHSTRP31 as placeholder — same as MTL.
-				    * Do not rely on this for PTL until confirmed
-				    * from a real PTL firmware dump. */
 			hap_strap = 31;
 			hap_strap_name = "PCHSTRP31";
+			break;
+		case PLATFORM_ADL:
+			/* ADL/RPL PCH-S vs PCH-P/N discrimination.
+			 * Source: coreboot gerrit 88310 ifd2_platform_get_hap_location() */
+			if (fpsba->pchstrp[0xd0 / 4] == 0x10081008) {
+				hap_strap = 55; /* PCH-S desktop: PCHSTRP55 = fpsba+0xDC */
+				hap_strap_name = "PCHSTRP55 (ADL-S/RPL-S desktop)";
+			} else {
+				hap_strap = 31; /* PCH-P/N mobile: PCHSTRP31 = fpsba+0x7C */
+				hap_strap_name = "PCHSTRP31 (ADL-P/N/RPL-P mobile)";
+			}
+			break;
+		case PLATFORM_MTL:
+			/* Strap 71 = fpsba+0x11C bit 16.
+			 * Source: coreboot gerrit 88310. */
+			hap_strap = 71;
+			hap_strap_name = "PCHSTRP71 (MTL — gerrit 88310)";
+			break;
+		case PLATFORM_PTL: /* WARNING: PTL HAP strap location unconfirmed.
+				    * Using PCHSTRP31 as placeholder.
+				    * Do not rely on this for PTL until confirmed. */
+			hap_strap = 31;
+			hap_strap_name = "PCHSTRP31 (PTL — UNCONFIRMED placeholder)";
 			break;
 		default:
 			hap_strap = 0;
